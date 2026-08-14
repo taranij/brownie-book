@@ -3,6 +3,7 @@ from datetime import date
 from html import escape
 from supabase import create_client
 
+
 # =========================================================
 # PAGE CONFIG
 # =========================================================
@@ -14,6 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+
 # =========================================================
 # SUPABASE
 # =========================================================
@@ -22,6 +24,7 @@ sb = create_client(
     st.secrets["SUPABASE_URL"],
     st.secrets["SUPABASE_KEY"]
 )
+
 
 # =========================================================
 # PRODUCTS
@@ -50,18 +53,17 @@ PRODUCTS = {
     "Brownie Bites": (169, 86),
 }
 
+
 # =========================================================
 # COMBOS
-#
-# 299 Combo:
-# Customer actually pays ₹259
-# Making cost = ₹100
-# Normal profit = ₹159
+# Customer pays ₹259
+# Making cost ₹100
 # =========================================================
 
 COMBOS = {
     "299 Combo": (259, 100)
 }
+
 
 # =========================================================
 # SESSION STATE
@@ -214,9 +216,7 @@ def parse_old_order_details(details):
         except ValueError:
             continue
 
-        info = get_product_details(
-            name.strip()
-        )
+        info = get_product_details(name.strip())
 
         if info:
 
@@ -241,10 +241,7 @@ def get_sale_items(sale):
     rows = (
         sb.table("order_items")
         .select("*")
-        .eq(
-            "sale_id",
-            sale["id"]
-        )
+        .eq("sale_id", sale["id"])
         .order("id")
         .execute()
         .data
@@ -264,8 +261,6 @@ def get_sale_items(sale):
             for r in rows
         ]
 
-    # For old orders created before
-    # order_items existed.
     return parse_old_order_details(
         sale.get("order_details", "")
     )
@@ -278,14 +273,12 @@ def get_sale_items(sale):
 def order_totals(items):
 
     normal_total = sum(
-        float(item["price"])
-        * int(item["quantity"])
+        float(item["price"]) * int(item["quantity"])
         for item in items
     )
 
     making_cost = sum(
-        float(item["cost"])
-        * int(item["quantity"])
+        float(item["cost"]) * int(item["quantity"])
         for item in items
     )
 
@@ -305,19 +298,14 @@ def order_totals(items):
 # SAVE ORDER ITEMS
 # =========================================================
 
-def save_sale_items(
-    sale_id,
-    items
-):
+def save_sale_items(sale_id, items):
 
-    # Delete previous item records.
-    sb.table("order_items") \
-        .delete() \
-        .eq(
-            "sale_id",
-            sale_id
-        ) \
+    (
+        sb.table("order_items")
+        .delete()
+        .eq("sale_id", sale_id)
         .execute()
+    )
 
     valid_items = [
         item
@@ -339,9 +327,11 @@ def save_sale_items(
         for item in valid_items
     ]
 
-    sb.table("order_items") \
-        .insert(rows) \
+    (
+        sb.table("order_items")
+        .insert(rows)
         .execute()
+    )
 
 
 # =========================================================
@@ -384,160 +374,149 @@ def start_edit(sale):
 
 
 # =========================================================
-# UI
+# UI CSS
 # =========================================================
 
-st.markdown("""
-<style>
+st.markdown(
+    """
+    <style>
 
-#MainMenu,
-footer,
-header {
-    visibility: hidden;
-}
+    #MainMenu,
+    footer,
+    header {
+        visibility: hidden;
+    }
 
-.stApp {
-    background-color: #faf8f6;
-}
-
-.block-container {
-    max-width: 1150px;
-    padding-top: 1rem;
-    padding-bottom: 3rem;
-}
-
-/* TITLE */
-
-.main-title {
-    font-size: 2.3rem;
-    font-weight: 800;
-    letter-spacing: -1px;
-    color: #351d14;
-}
-
-.main-subtitle {
-    color: #806d63;
-    margin-top: -8px;
-    margin-bottom: 20px;
-}
-
-/* HEADINGS */
-
-.section-heading {
-    font-size: 1.35rem;
-    font-weight: 750;
-    color: #382118;
-    margin-top: 1.2rem;
-    margin-bottom: .25rem;
-}
-
-.section-caption {
-    color: #88766e;
-    font-size: .9rem;
-    margin-bottom: .8rem;
-}
-
-/* METRICS */
-
-.metric-box {
-    background: white;
-    border: 1px solid #eadfd9;
-    border-radius: 18px;
-    padding: 18px;
-    box-shadow: 0 4px 18px rgba(70,40,25,.05);
-}
-
-.metric-icon {
-    font-size: 1.3rem;
-}
-
-.metric-label {
-    color: #806d63;
-    font-size: .82rem;
-    margin-top: 5px;
-}
-
-.metric-number {
-    color: #321b12;
-    font-size: 1.55rem;
-    font-weight: 750;
-    margin-top: 2px;
-}
-
-/* ORDERS */
-
-.order-box {
-    background: white;
-    border: 1px solid #eadfd9;
-    border-radius: 17px;
-    padding: 14px 16px;
-    margin-bottom: 8px;
-}
-
-.order-customer {
-    font-weight: 700;
-    color: #3b2319;
-}
-
-.order-details {
-    color: #77665e;
-    font-size: .85rem;
-    margin-top: 4px;
-}
-
-.order-money {
-    font-weight: 750;
-    color: #5a2e1d;
-}
-
-.order-profit {
-    color: #47704f;
-    font-size: .82rem;
-    font-weight: 600;
-}
-
-/* EDIT */
-
-.edit-panel {
-    background: #fffaf6;
-    border: 1px solid #ead9cf;
-    border-radius: 18px;
-    padding: 14px;
-}
-
-/* BUTTONS */
-
-.stButton > button {
-    border-radius: 12px;
-    min-height: 44px;
-    font-weight: 650;
-}
-
-/* MOBILE */
-
-@media (max-width: 700px) {
+    .stApp {
+        background-color: #faf8f6;
+    }
 
     .block-container {
-        padding-left: .7rem;
-        padding-right: .7rem;
+        max-width: 1150px;
+        padding-top: 1rem;
+        padding-bottom: 3rem;
     }
 
     .main-title {
-        font-size: 1.8rem;
+        font-size: 2.3rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: #351d14;
+    }
+
+    .main-subtitle {
+        color: #806d63;
+        margin-top: -8px;
+        margin-bottom: 20px;
+    }
+
+    .section-heading {
+        font-size: 1.35rem;
+        font-weight: 750;
+        color: #382118;
+        margin-top: 1.2rem;
+        margin-bottom: .25rem;
+    }
+
+    .section-caption {
+        color: #88766e;
+        font-size: .9rem;
+        margin-bottom: .8rem;
     }
 
     .metric-box {
-        padding: 13px;
+        background: white;
+        border: 1px solid #eadfd9;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 4px 18px rgba(70,40,25,.05);
+    }
+
+    .metric-icon {
+        font-size: 1.3rem;
+    }
+
+    .metric-label {
+        color: #806d63;
+        font-size: .82rem;
+        margin-top: 5px;
     }
 
     .metric-number {
-        font-size: 1.25rem;
+        color: #321b12;
+        font-size: 1.55rem;
+        font-weight: 750;
+        margin-top: 2px;
     }
 
-}
+    .order-box {
+        background: white;
+        border: 1px solid #eadfd9;
+        border-radius: 17px;
+        padding: 14px 16px;
+        margin-bottom: 8px;
+    }
 
-</style>
-""", unsafe_allow_html=True)
+    .order-customer {
+        font-weight: 700;
+        color: #3b2319;
+    }
+
+    .order-details {
+        color: #77665e;
+        font-size: .85rem;
+        margin-top: 4px;
+    }
+
+    .order-money {
+        font-weight: 750;
+        color: #5a2e1d;
+    }
+
+    .order-profit {
+        color: #47704f;
+        font-size: .82rem;
+        font-weight: 600;
+    }
+
+    .edit-panel {
+        background: #fffaf6;
+        border: 1px solid #ead9cf;
+        border-radius: 18px;
+        padding: 14px;
+    }
+
+    .stButton > button {
+        border-radius: 12px;
+        min-height: 44px;
+        font-weight: 650;
+    }
+
+    @media (max-width: 700px) {
+
+        .block-container {
+            padding-left: .7rem;
+            padding-right: .7rem;
+        }
+
+        .main-title {
+            font-size: 1.8rem;
+        }
+
+        .metric-box {
+            padding: 13px;
+        }
+
+        .metric-number {
+            font-size: 1.25rem;
+        }
+
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # =========================================================
@@ -571,6 +550,7 @@ with nav1:
     ):
         go("Dashboard")
 
+
 with nav2:
 
     if st.button(
@@ -579,6 +559,7 @@ with nav2:
     ):
         go("Add Sale")
 
+
 with nav3:
 
     if st.button(
@@ -586,6 +567,7 @@ with nav3:
         use_container_width=True
     ):
         go("Purchase")
+
 
 with nav4:
 
@@ -666,38 +648,79 @@ if page == "Dashboard":
         unsafe_allow_html=True
     )
 
-    # ---------------- METRICS ----------------
+    # -----------------------------------------------------
+    # METRICS
+    # -----------------------------------------------------
 
-metric_cols = st.columns(2)
+    metric_cols = st.columns(2)
 
-with metric_cols[0]:
-    st.metric(
-        "💰 Sales",
-        money(total_sales)
-    )
+    with metric_cols[0]:
 
-with metric_cols[1]:
-    st.metric(
-        "📈 Profit",
-        money(total_profit)
-    )
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-icon">💰</div>
+                <div class="metric-label">Sales</div>
+                <div class="metric-number">
+                    {money(total_sales)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-metric_cols = st.columns(2)
+    with metric_cols[1]:
 
-with metric_cols[0]:
-    st.metric(
-        "🛒 Ingredients",
-        money(ingredient_spend)
-    )
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-icon">📈</div>
+                <div class="metric-label">Profit</div>
+                <div class="metric-number">
+                    {money(total_profit)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-with metric_cols[1]:
-    st.metric(
-        "📦 Items sold",
-        f"{total_items:,}"
-    )
+    st.write("")
 
+    metric_cols = st.columns(2)
 
+    with metric_cols[0]:
+
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-icon">🛒</div>
+                <div class="metric-label">Ingredients</div>
+                <div class="metric-number">
+                    {money(ingredient_spend)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with metric_cols[1]:
+
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-icon">📦</div>
+                <div class="metric-label">Items sold</div>
+                <div class="metric-number">
+                    {total_items:,}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # -----------------------------------------------------
     # QUICK ACTIONS
+    # -----------------------------------------------------
 
     st.markdown(
         '<div class="section-heading">'
@@ -724,8 +747,9 @@ with metric_cols[1]:
         ):
             go("Purchase")
 
-
+    # -----------------------------------------------------
     # RECENT ORDERS
+    # -----------------------------------------------------
 
     st.markdown(
         '<div class="section-heading">'
@@ -745,10 +769,7 @@ with metric_cols[1]:
         for r in sales[:8]:
 
             customer = (
-                r.get(
-                    "customer_name",
-                    ""
-                )
+                r.get("customer_name", "")
                 or ""
             ).strip()
 
@@ -758,10 +779,7 @@ with metric_cols[1]:
             )
 
             details = (
-                r.get(
-                    "order_details",
-                    ""
-                )
+                r.get("order_details", "")
                 or ""
             ).strip()
 
@@ -773,9 +791,7 @@ with metric_cols[1]:
                 )
             )
 
-            c1, c2 = st.columns(
-                [4, 1]
-            )
+            c1, c2 = st.columns([4, 1])
 
             with c1:
 
@@ -840,17 +856,13 @@ elif page == "Add Sale":
         unsafe_allow_html=True
     )
 
-
     customer_name = st.text_input(
         "Customer name",
         value=st.session_state.order_customer,
         placeholder="Optional — e.g. Priya"
     )
 
-    st.session_state.order_customer = (
-        customer_name
-    )
-
+    st.session_state.order_customer = customer_name
 
     st.markdown(
         '<div class="section-heading">'
@@ -858,7 +870,6 @@ elif page == "Add Sale":
         '</div>',
         unsafe_allow_html=True
     )
-
 
     item_type = st.radio(
         "What are you adding?",
@@ -869,7 +880,6 @@ elif page == "Add Sale":
         horizontal=True
     )
 
-
     if item_type == "🍫 Product":
 
         selected = st.selectbox(
@@ -877,9 +887,7 @@ elif page == "Add Sale":
             list(PRODUCTS.keys())
         )
 
-        price, normal_profit = PRODUCTS[
-            selected
-        ]
+        price, normal_profit = PRODUCTS[selected]
 
         cost = price - normal_profit
 
@@ -905,13 +913,9 @@ elif page == "Add Sale":
             list(COMBOS.keys())
         )
 
-        price, cost = COMBOS[
-            selected
-        ]
+        price, cost = COMBOS[selected]
 
-        normal_profit = (
-            price - cost
-        )
+        normal_profit = price - cost
 
         qty = st.number_input(
             "Quantity",
@@ -929,7 +933,6 @@ elif page == "Add Sale":
             f"Profit {money(normal_profit)}"
         )
 
-
     if st.button(
         "➕ Add to Order",
         use_container_width=True
@@ -946,8 +949,9 @@ elif page == "Add Sale":
             f"{selected} × {qty} added to order."
         )
 
-
+    # -----------------------------------------------------
     # CURRENT ORDER
+    # -----------------------------------------------------
 
     if st.session_state.order_items:
 
@@ -958,10 +962,12 @@ elif page == "Add Sale":
             unsafe_allow_html=True
         )
 
-        normal_total, total_cost, total_quantity = (
-            order_totals(
-                st.session_state.order_items
-            )
+        (
+            normal_total,
+            total_cost,
+            total_quantity
+        ) = order_totals(
+            st.session_state.order_items
         )
 
         for i, item in enumerate(
@@ -970,6 +976,11 @@ elif page == "Add Sale":
 
             line_total = (
                 item["price"]
+                * item["quantity"]
+            )
+
+            line_cost = (
+                item["cost"]
                 * item["quantity"]
             )
 
@@ -985,8 +996,7 @@ elif page == "Add Sale":
 
                 st.caption(
                     f"Qty: {item['quantity']} • "
-                    f"Making cost: "
-                    f"{money(line_total - item['price'] * item['quantity'] + item['cost'] * item['quantity'])}"
+                    f"Making cost: {money(line_cost)}"
                 )
 
             with c2:
@@ -1002,15 +1012,11 @@ elif page == "Add Sale":
                     key=f"new_remove_{i}"
                 ):
 
-                    st.session_state.order_items.pop(
-                        i
-                    )
+                    st.session_state.order_items.pop(i)
 
                     st.rerun()
 
-
         st.divider()
-
 
         col1, col2 = st.columns(2)
 
@@ -1028,14 +1034,12 @@ elif page == "Add Sale":
                 money(total_cost)
             )
 
-
         st.markdown(
             '<div class="section-heading">'
             'Payment 💳'
             '</div>',
             unsafe_allow_html=True
         )
-
 
         amount_paid = st.number_input(
             "Amount actually paid",
@@ -1045,23 +1049,14 @@ elif page == "Add Sale":
             key="new_amount_paid"
         )
 
+        discount = normal_total - amount_paid
 
-        discount = (
-            normal_total
-            - amount_paid
-        )
-
-        actual_profit = (
-            amount_paid
-            - total_cost
-        )
-
+        actual_profit = amount_paid - total_cost
 
         if discount > 0:
 
             st.warning(
-                f"🏷️ Discount given: "
-                f"{money(discount)}"
+                f"🏷️ Discount given: {money(discount)}"
             )
 
         elif discount == 0:
@@ -1073,17 +1068,14 @@ elif page == "Add Sale":
         else:
 
             st.info(
-                f"Customer paid "
-                f"{money(abs(discount))} "
+                f"Customer paid {money(abs(discount))} "
                 "more than the normal total."
             )
-
 
         st.metric(
             "Actual profit from this order",
             money(actual_profit)
         )
-
 
         if st.button(
             "💾 Save Order",
@@ -1117,21 +1109,28 @@ elif page == "Add Sale":
                     .execute()
                 )
 
-                new_sale = response.data[0]
+                if not response.data:
 
-                save_sale_items(
-                    new_sale["id"],
-                    st.session_state.order_items
-                )
+                    st.error(
+                        "The order could not be saved."
+                    )
 
-                clear_order()
+                else:
 
-                st.success(
-                    "🎉 Order saved successfully!"
-                )
+                    new_sale = response.data[0]
 
-                st.rerun()
+                    save_sale_items(
+                        new_sale["id"],
+                        st.session_state.order_items
+                    )
 
+                    clear_order()
+
+                    st.success(
+                        "🎉 Order saved successfully!"
+                    )
+
+                    st.rerun()
 
         if st.button(
             "Clear Order",
@@ -1141,7 +1140,6 @@ elif page == "Add Sale":
             clear_order()
 
             st.rerun()
-
 
     else:
 
@@ -1168,7 +1166,6 @@ elif page == "Purchase":
         "Record what you actually spent buying ingredients."
     )
 
-
     with st.form("purchase"):
 
         item = st.text_input(
@@ -1187,13 +1184,9 @@ elif page == "Purchase":
             use_container_width=True
         )
 
-
         if submitted:
 
-            if (
-                not item.strip()
-                or amount <= 0
-            ):
+            if not item.strip() or amount <= 0:
 
                 st.error(
                     "Please enter the item and amount."
@@ -1201,11 +1194,15 @@ elif page == "Purchase":
 
             else:
 
-                sb.table("purchases").insert({
-                    "date": today,
-                    "item": item.strip(),
-                    "amount": amount
-                }).execute()
+                (
+                    sb.table("purchases")
+                    .insert({
+                        "date": today,
+                        "item": item.strip(),
+                        "amount": amount
+                    })
+                    .execute()
+                )
 
                 st.success(
                     "🛒 Purchase saved."
@@ -1232,7 +1229,6 @@ elif page == "Reports":
         "payment and discount."
     )
 
-
     mode = st.radio(
         "Period",
         [
@@ -1243,16 +1239,13 @@ elif page == "Reports":
         horizontal=True
     )
 
-
     start = None
     end = None
-
 
     if mode == "This month":
 
         start = month
         end = today
-
 
     elif mode == "Custom":
 
@@ -1262,9 +1255,7 @@ elif page == "Reports":
 
             start = st.date_input(
                 "From",
-                date.today().replace(
-                    day=1
-                )
+                date.today().replace(day=1)
             ).isoformat()
 
         with c2:
@@ -1273,7 +1264,6 @@ elif page == "Reports":
                 "To",
                 date.today()
             ).isoformat()
-
 
     sr = filt(
         sales,
@@ -1286,7 +1276,6 @@ elif page == "Reports":
         start,
         end
     )
-
 
     total_sales = sum(
         float(x["sales"])
@@ -1308,8 +1297,9 @@ elif page == "Reports":
         for x in sr
     )
 
-
+    # -----------------------------------------------------
     # REPORT METRICS
+    # -----------------------------------------------------
 
     m1, m2 = st.columns(2)
 
@@ -1327,7 +1317,6 @@ elif page == "Reports":
             money(total_profit)
         )
 
-
     m3, m4 = st.columns(2)
 
     with m3:
@@ -1344,7 +1333,6 @@ elif page == "Reports":
             f"{total_items:,}"
         )
 
-
     # =====================================================
     # EDIT ORDER PANEL
     # =====================================================
@@ -1355,12 +1343,10 @@ elif page == "Reports":
             (
                 x
                 for x in sales
-                if x["id"]
-                == st.session_state.edit_order_id
+                if x["id"] == st.session_state.edit_order_id
             ),
             None
         )
-
 
         if edit_sale is None:
 
@@ -1371,7 +1357,6 @@ elif page == "Reports":
             )
 
             st.rerun()
-
 
         st.markdown(
             '<div class="section-heading">'
@@ -1388,20 +1373,19 @@ elif page == "Reports":
             unsafe_allow_html=True
         )
 
-
         st.session_state.edit_customer = st.text_input(
             "Customer name",
             value=st.session_state.edit_customer,
             key=f"edit_customer_{edit_sale['id']}"
         )
 
+        st.markdown("**Current items**")
 
-        # CURRENT ITEMS
+        if not st.session_state.edit_items:
 
-        st.markdown(
-            "**Current items**"
-        )
-
+            st.info(
+                "No items currently in this order."
+            )
 
         for i, item in enumerate(
             st.session_state.edit_items
@@ -1411,7 +1395,6 @@ elif page == "Reports":
                 [4, 2, 1]
             )
 
-
             with c1:
 
                 st.write(
@@ -1420,10 +1403,8 @@ elif page == "Reports":
 
                 st.caption(
                     f"{money(item['price'])} each • "
-                    f"Making cost "
-                    f"{money(item['cost'])} each"
+                    f"Making cost {money(item['cost'])} each"
                 )
-
 
             with c2:
 
@@ -1431,9 +1412,7 @@ elif page == "Reports":
                     "Qty",
                     min_value=0,
                     max_value=100,
-                    value=int(
-                        item["quantity"]
-                    ),
+                    value=int(item["quantity"]),
                     step=1,
                     key=(
                         f"edit_qty_"
@@ -1442,10 +1421,9 @@ elif page == "Reports":
                     )
                 )
 
-                st.session_state.edit_items[
-                    i
-                ]["quantity"] = int(new_qty)
-
+                st.session_state.edit_items[i][
+                    "quantity"
+                ] = int(new_qty)
 
             with c3:
 
@@ -1458,21 +1436,15 @@ elif page == "Reports":
                     )
                 ):
 
-                    st.session_state.edit_items.pop(
-                        i
-                    )
+                    st.session_state.edit_items.pop(i)
 
                     st.rerun()
 
+        # -------------------------------------------------
+        # ADD ITEM
+        # -------------------------------------------------
 
-        # =================================================
-        # ADD ITEM TO EXISTING ORDER
-        # =================================================
-
-        st.markdown(
-            "**➕ Add another item**"
-        )
-
+        st.markdown("**➕ Add another item**")
 
         edit_type = st.radio(
             "Type",
@@ -1483,7 +1455,6 @@ elif page == "Reports":
             horizontal=True,
             key=f"edit_type_{edit_sale['id']}"
         )
-
 
         if edit_type == "🍫 Product":
 
@@ -1497,11 +1468,7 @@ elif page == "Reports":
                 edit_product
             ]
 
-            edit_cost = (
-                edit_price
-                - edit_profit
-            )
-
+            edit_cost = edit_price - edit_profit
 
         else:
 
@@ -1515,7 +1482,6 @@ elif page == "Reports":
                 edit_product
             ]
 
-
         edit_qty = st.number_input(
             "Quantity to add",
             min_value=1,
@@ -1524,7 +1490,6 @@ elif page == "Reports":
             step=1,
             key=f"edit_add_qty_{edit_sale['id']}"
         )
-
 
         if st.button(
             "➕ Add item to this order",
@@ -1541,38 +1506,28 @@ elif page == "Reports":
             )
 
             st.success(
-                f"{edit_product} × "
-                f"{edit_qty} added."
+                f"{edit_product} × {edit_qty} added."
             )
 
             st.rerun()
 
-
-        # =================================================
-        # EDIT SUMMARY
-        # =================================================
+        # -------------------------------------------------
+        # EDIT TOTALS
+        # -------------------------------------------------
 
         edit_items = [
             item
-            for item
-            in st.session_state.edit_items
+            for item in st.session_state.edit_items
             if int(item["quantity"]) > 0
         ]
-
 
         (
             edit_normal_total,
             edit_cost_total,
             edit_total_qty
-        ) = order_totals(
-            edit_items
-        )
+        ) = order_totals(edit_items)
 
-
-        old_paid = float(
-            edit_sale["sales"]
-        )
-
+        old_paid = float(edit_sale["sales"])
 
         edit_paid = st.number_input(
             "Amount actually paid by customer",
@@ -1585,22 +1540,15 @@ elif page == "Reports":
             key=f"edit_paid_{edit_sale['id']}"
         )
 
-
-        st.session_state.edit_paid = (
-            edit_paid
-        )
-
+        st.session_state.edit_paid = edit_paid
 
         edit_discount = (
-            edit_normal_total
-            - edit_paid
+            edit_normal_total - edit_paid
         )
 
         edit_profit = (
-            edit_paid
-            - edit_cost_total
+            edit_paid - edit_cost_total
         )
-
 
         ec1, ec2, ec3 = st.columns(3)
 
@@ -1615,12 +1563,7 @@ elif page == "Reports":
 
             st.metric(
                 "Discount",
-                money(
-                    max(
-                        edit_discount,
-                        0
-                    )
-                )
+                money(max(edit_discount, 0))
             )
 
         with ec3:
@@ -1630,7 +1573,6 @@ elif page == "Reports":
                 money(edit_profit)
             )
 
-
         if edit_discount < 0:
 
             st.info(
@@ -1639,9 +1581,7 @@ elif page == "Reports":
                 "above the normal price."
             )
 
-
         save_col, cancel_col = st.columns(2)
-
 
         with save_col:
 
@@ -1670,39 +1610,39 @@ elif page == "Reports":
                         edit_items
                     )
 
-
-                    sb.table("sales").update({
-                        "product": "Order",
-                        "quantity": edit_total_qty,
-                        "sales": edit_paid,
-                        "profit": edit_profit,
-                        "customer_name": (
-                            st.session_state
-                            .edit_customer
-                            .strip()
-                        ),
-                        "order_details": updated_details
-                    }).eq(
-                        "id",
-                        edit_sale["id"]
-                    ).execute()
-
+                    (
+                        sb.table("sales")
+                        .update({
+                            "product": "Order",
+                            "quantity": edit_total_qty,
+                            "sales": edit_paid,
+                            "profit": edit_profit,
+                            "customer_name": (
+                                st.session_state
+                                .edit_customer
+                                .strip()
+                            ),
+                            "order_details": updated_details
+                        })
+                        .eq(
+                            "id",
+                            edit_sale["id"]
+                        )
+                        .execute()
+                    )
 
                     save_sale_items(
                         edit_sale["id"],
                         edit_items
                     )
 
-
                     clear_edit()
-
 
                     st.success(
                         "✅ Order updated successfully."
                     )
 
                     st.rerun()
-
 
         with cancel_col:
 
@@ -1716,7 +1656,6 @@ elif page == "Reports":
 
                 st.rerun()
 
-
     # =====================================================
     # ORDERS
     # =====================================================
@@ -1728,23 +1667,18 @@ elif page == "Reports":
         unsafe_allow_html=True
     )
 
-
     if not sr:
 
         st.info(
             "📭 No orders found for this period."
         )
 
-
     else:
 
         for r in sr:
 
             customer = (
-                r.get(
-                    "customer_name",
-                    ""
-                )
+                r.get("customer_name", "")
                 or ""
             ).strip()
 
@@ -1753,15 +1687,10 @@ elif page == "Reports":
                 or "Walk-in / No name"
             )
 
-
             details = (
-                r.get(
-                    "order_details",
-                    ""
-                )
+                r.get("order_details", "")
                 or ""
             ).strip()
-
 
             details = (
                 details
@@ -1771,10 +1700,9 @@ elif page == "Reports":
                 )
             )
 
-
-            # =============================================
-            # CLICKABLE / EXPANDABLE ORDER
-            # =============================================
+            # -------------------------------------------------
+            # CLICKABLE ORDER
+            # -------------------------------------------------
 
             with st.expander(
                 f"👤 {customer}  •  "
@@ -1784,29 +1712,21 @@ elif page == "Reports":
 
                 items = get_sale_items(r)
 
-
                 (
                     normal_total,
                     making_cost,
                     total_qty
-                ) = order_totals(
-                    items
-                )
+                ) = order_totals(items)
 
-
-                paid = float(
-                    r["sales"]
-                )
+                paid = float(r["sales"])
 
                 discount = (
-                    normal_total
-                    - paid
+                    normal_total - paid
                 )
 
                 profit = float(
                     r["profit"]
                 )
-
 
                 st.markdown(
                     f"**Customer:** "
@@ -1818,11 +1738,9 @@ elif page == "Reports":
                     f"{str(r['date'])[:10]}"
                 )
 
-
                 st.markdown(
                     "### 🧾 Items ordered"
                 )
-
 
                 if items:
 
@@ -1833,10 +1751,36 @@ elif page == "Reports":
                             * item["quantity"]
                         )
 
-                        st.write(
-                            f"**{item['product']}** "
-                            f"× {item['quantity']} "
-                            f"— {money(line_price)}"
+                        line_cost = (
+                            item["cost"]
+                            * item["quantity"]
+                        )
+
+                        item_cols = st.columns(
+                            [4, 2, 2]
+                        )
+
+                        with item_cols[0]:
+
+                            st.write(
+                                f"**{item['product']}**"
+                            )
+
+                        with item_cols[1]:
+
+                            st.write(
+                                f"Qty: {item['quantity']}"
+                            )
+
+                        with item_cols[2]:
+
+                            st.write(
+                                money(line_price)
+                            )
+
+                        st.caption(
+                            f"Making cost: "
+                            f"{money(line_cost)}"
                         )
 
                 else:
@@ -1845,12 +1789,9 @@ elif page == "Reports":
                         f"Older order: {details}"
                     )
 
-
                 st.divider()
 
-
                 d1, d2 = st.columns(2)
-
 
                 with d1:
 
@@ -1859,7 +1800,6 @@ elif page == "Reports":
                         money(normal_total)
                     )
 
-
                 with d2:
 
                     st.metric(
@@ -1867,9 +1807,7 @@ elif page == "Reports":
                         money(paid)
                     )
 
-
                 d3, d4 = st.columns(2)
-
 
                 with d3:
 
@@ -1883,7 +1821,6 @@ elif page == "Reports":
                         )
                     )
 
-
                 with d4:
 
                     st.metric(
@@ -1891,12 +1828,10 @@ elif page == "Reports":
                         money(making_cost)
                     )
 
-
                 st.metric(
                     "Profit",
                     money(profit)
                 )
-
 
                 if discount < 0:
 
@@ -1906,9 +1841,7 @@ elif page == "Reports":
                         "above the normal price."
                     )
 
-
                 e1, e2 = st.columns(2)
-
 
                 with e1:
 
@@ -1922,7 +1855,6 @@ elif page == "Reports":
 
                         st.rerun()
 
-
                 with e2:
 
                     if st.button(
@@ -1931,20 +1863,25 @@ elif page == "Reports":
                         use_container_width=True
                     ):
 
-                        sb.table("sales") \
-                            .delete() \
-                            .eq(
-                                "id",
-                                r["id"]
-                            ) \
+                        (
+                            sb.table("order_items")
+                            .delete()
+                            .eq("sale_id", r["id"])
                             .execute()
+                        )
+
+                        (
+                            sb.table("sales")
+                            .delete()
+                            .eq("id", r["id"])
+                            .execute()
+                        )
 
                         st.success(
                             "Order deleted."
                         )
 
                         st.rerun()
-
 
     # =====================================================
     # PURCHASES
@@ -1957,30 +1894,23 @@ elif page == "Reports":
         unsafe_allow_html=True
     )
 
-
     if pr:
 
         for r in pr:
 
-            with st.container(
-                border=True
-            ):
+            with st.container(border=True):
 
-                c1, c2 = st.columns(
-                    [4, 1]
-                )
-
+                c1, c2 = st.columns([4, 1])
 
                 with c1:
 
                     st.write(
-                        f"🛒 **{r['item']}**"
+                        f"🛒 **{escape(str(r['item']))}**"
                     )
 
                     st.caption(
                         str(r["date"])[:10]
                     )
-
 
                 with c2:
 
@@ -1988,13 +1918,11 @@ elif page == "Reports":
                         f"**{money(r['amount'])}**"
                     )
 
-
     else:
 
         st.info(
             "No ingredient purchases recorded."
         )
-
 
     # =====================================================
     # PRODUCT REFERENCE
@@ -2007,19 +1935,14 @@ elif page == "Reports":
         unsafe_allow_html=True
     )
 
-
     product_rows = []
-
 
     for name, (
         price,
         profit
     ) in PRODUCTS.items():
 
-        cost = (
-            price
-            - profit
-        )
+        cost = price - profit
 
         product_rows.append({
             "Product": name,
@@ -2028,13 +1951,11 @@ elif page == "Reports":
             "Profit": money(profit)
         })
 
-
     st.dataframe(
         product_rows,
         use_container_width=True,
         hide_index=True
     )
-
 
     # =====================================================
     # COMBO REFERENCE
@@ -2047,9 +1968,7 @@ elif page == "Reports":
         unsafe_allow_html=True
     )
 
-
     combo_rows = []
-
 
     for name, (
         price,
@@ -2060,11 +1979,8 @@ elif page == "Reports":
             "Combo": name,
             "Customer Pays": money(price),
             "Making Cost": money(cost),
-            "Profit": money(
-                price - cost
-            )
+            "Profit": money(price - cost)
         })
-
 
     st.dataframe(
         combo_rows,
