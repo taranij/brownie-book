@@ -666,62 +666,35 @@ if page == "Dashboard":
         unsafe_allow_html=True
     )
 
-    metric_cols = st.columns(2)
+    # ---------------- METRICS ----------------
 
-    metrics = [
-        (
-            "💰",
-            "Sales",
-            money(total_sales)
-        ),
-        (
-            "📈",
-            "Profit",
-            money(total_profit)
-        ),
-        (
-            "🛒",
-            "Ingredients",
-            money(ingredient_spend)
-        ),
-        (
-            "📦",
-            "Items sold",
-            f"{total_items:,}"
-        )
-    ]
+metric_cols = st.columns(2)
 
-    for i, (
-        icon,
-        label,
-        value
-    ) in enumerate(metrics):
+with metric_cols[0]:
+    st.metric(
+        "💰 Sales",
+        money(total_sales)
+    )
 
-        with metric_cols[i % 2]:
+with metric_cols[1]:
+    st.metric(
+        "📈 Profit",
+        money(total_profit)
+    )
 
-            st.markdown(
-                f"""
-                <div class="metric-box">
+metric_cols = st.columns(2)
 
-                    <div class="metric-icon">
-                        {icon}
-                    </div>
+with metric_cols[0]:
+    st.metric(
+        "🛒 Ingredients",
+        money(ingredient_spend)
+    )
 
-                    <div class="metric-label">
-                        {label}
-                    </div>
-
-                    <div class="metric-number">
-                        {value}
-                    </div>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        if i % 2 == 1:
-            st.write("")
+with metric_cols[1]:
+    st.metric(
+        "📦 Items sold",
+        f"{total_items:,}"
+    )
 
 
     # QUICK ACTIONS
