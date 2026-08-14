@@ -73,7 +73,7 @@ elif page=="Purchase":
             if not item.strip() or amount<=0: st.error("Enter the item and amount.")
             else:
                 sb.table("purchases").insert({"date":today,"item":item.strip(),"amount":amount}).execute()
-                st.success("Purchase saved to cloud."); st.experimental_rerun()
+                st.success("Purchase saved to cloud."); st.rerun()
 
 else:
     st.markdown('<div class="section">Reports</div>',unsafe_allow_html=True)
@@ -92,7 +92,7 @@ else:
         c1,c2,c3,c4,c5,c6=st.columns([1.2,2.5,.6,1,1,.8])
         c1.write(str(r["date"])[:10]);c2.write(r["product"]);c3.write(r["quantity"]);c4.write(f"₹{float(r['sales']):,.0f}");c5.write(f"₹{float(r['profit']):,.0f}")
         if c6.button("🗑️",key=f"d{r['id']}"):
-            sb.table("sales").delete().eq("id",r["id"]).execute();st.experimental_rerun()
+            sb.table("sales").delete().eq("id",r["id"]).execute();st.rerun()
     st.markdown('<div class="section">Ingredient purchases</div>',unsafe_allow_html=True)
     st.dataframe([{"Date":str(r["date"])[:10],"Item":r["item"],"Amount (₹)":r["amount"]} for r in pr],use_container_width=True)
     st.markdown('<div class="section">Products</div>',unsafe_allow_html=True)
