@@ -61,7 +61,7 @@ elif page=="Add Sale":
         price,profit=PRODUCTS[product]; st.info(f"₹{price} each • ₹{profit} profit each • Order ₹{price*qty}")
         if st.form_submit_button("Save sale",use_container_width=True):
             sb.table("sales").insert({"date":today,"product":product,"quantity":qty,"sales":price*qty,"profit":profit*qty}).execute()
-            st.success("Sale saved to cloud."); st.experimental_rerun()
+            st.success("Sale saved to cloud."); st.rerun()
 
 elif page=="Purchase":
     st.markdown('<div class="section">Add ingredient purchase</div>',unsafe_allow_html=True)
