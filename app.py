@@ -22,7 +22,7 @@ div.stButton>button{border-radius:14px;min-height:44px;font-weight:600}
 </style>""",unsafe_allow_html=True)
 
 if "page" not in st.session_state: st.session_state.page="Dashboard"
-def go(p): st.session_state.page=p; st.experimental_rerun()
+def go(p): st.session_state.page=p; st.rerun()
 
 nav=st.columns(4)
 for c,label,p in zip(nav,["🏠 Dashboard","➕ Add Sale","🛒 Purchase","📊 Reports"],["Dashboard","Add Sale","Purchase","Reports"]):
