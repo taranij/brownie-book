@@ -648,79 +648,45 @@ if page == "Dashboard":
         unsafe_allow_html=True
     )
 
-    # -----------------------------------------------------
+    # =====================================================
     # METRICS
-    # -----------------------------------------------------
+    # =====================================================
 
     metric_cols = st.columns(2)
 
     with metric_cols[0]:
 
-        st.markdown(
-            f"""
-            <div class="metric-box">
-                <div class="metric-icon">💰</div>
-                <div class="metric-label">Sales</div>
-                <div class="metric-number">
-                    {money(total_sales)}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "💰 Sales",
+            money(total_sales)
         )
 
     with metric_cols[1]:
 
-        st.markdown(
-            f"""
-            <div class="metric-box">
-                <div class="metric-icon">📈</div>
-                <div class="metric-label">Profit</div>
-                <div class="metric-number">
-                    {money(total_profit)}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "📈 Profit",
+            money(total_profit)
         )
-
-    st.write("")
 
     metric_cols = st.columns(2)
 
     with metric_cols[0]:
 
-        st.markdown(
-            f"""
-            <div class="metric-box">
-                <div class="metric-icon">🛒</div>
-                <div class="metric-label">Ingredients</div>
-                <div class="metric-number">
-                    {money(ingredient_spend)}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "🛒 Ingredients",
+            money(ingredient_spend)
         )
 
     with metric_cols[1]:
 
-        st.markdown(
-            f"""
-            <div class="metric-box">
-                <div class="metric-icon">📦</div>
-                <div class="metric-label">Items sold</div>
-                <div class="metric-number">
-                    {total_items:,}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "📦 Items sold",
+            f"{total_items:,}"
         )
 
-    # -----------------------------------------------------
+    # =====================================================
     # QUICK ACTIONS
-    # -----------------------------------------------------
+    # =====================================================
 
     st.markdown(
         '<div class="section-heading">'
@@ -747,15 +713,19 @@ if page == "Dashboard":
         ):
             go("Purchase")
 
-    # -----------------------------------------------------
+    # =====================================================
     # RECENT ORDERS
-    # -----------------------------------------------------
+    # =====================================================
 
     st.markdown(
         '<div class="section-heading">'
         'Recent orders'
         '</div>',
         unsafe_allow_html=True
+    )
+
+    st.caption(
+        "Click an order to see the complete details."
     )
 
     if not sales:
@@ -769,7 +739,10 @@ if page == "Dashboard":
         for r in sales[:8]:
 
             customer = (
-                r.get("customer_name", "")
+                r.get(
+                    "customer_name",
+                    ""
+                )
                 or ""
             ).strip()
 
@@ -779,7 +752,10 @@ if page == "Dashboard":
             )
 
             details = (
-                r.get("order_details", "")
+                r.get(
+                    "order_details",
+                    ""
+                )
                 or ""
             ).strip()
 
@@ -791,50 +767,163 @@ if page == "Dashboard":
                 )
             )
 
-            c1, c2 = st.columns([4, 1])
+            # =================================================
+            # CLICKABLE ORDER
+            # =================================================
 
-            with c1:
+            with st.expander(
+                f"👤 {customer}  •  "
+                f"{str(r['date'])[:10]}  •  "
+                f"{money(r['sales'])}"
+            ):
 
-                st.markdown(
-                    f"""
-                    <div class="order-box">
+                items = get_sale_items(r)
 
-                        <div class="order-customer">
-                            👤 {escape(customer)}
-                        </div>
+                (
+                    normal_total,
+                    making_cost,
+                    total_qty
+                ) = order_totals(items)
 
-                        <div class="order-details">
-                            {escape(details)}
-                        </div>
-
-                        <div class="order-details">
-                            📅 {str(r["date"])[:10]}
-                        </div>
-
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                paid = float(
+                    r["sales"]
                 )
 
-            with c2:
-
-                st.markdown(
-                    f"""
-                    <div style="text-align:right">
-
-                        <div class="order-money">
-                            {money(r["sales"])}
-                        </div>
-
-                        <div class="order-profit">
-                            +{money(r["profit"])} profit
-                        </div>
-
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                discount = (
+                    normal_total
+                    - paid
                 )
 
+                profit = float(
+                    r["profit"]
+                )
+
+                # ---------------------------------------------
+                # CUSTOMER
+                # ---------------------------------------------
+
+                st.markdown(
+                    f"**Customer:** "
+                    f"{escape(customer)}"
+                )
+
+                st.markdown(
+                    f"**Date:** "
+                    f"{str(r['date'])[:10]}"
+                )
+
+                # ---------------------------------------------
+                # ITEMS
+                # ---------------------------------------------
+
+                st.markdown(
+                    "### 🧾 Items ordered"
+                )
+
+                if items:
+
+                    for item in items:
+
+                        line_price = (
+                            float(item["price"])
+                            * int(item["quantity"])
+                        )
+
+                        st.write(
+                            f"**{item['product']}** "
+                            f"× {item['quantity']} "
+                            f"— {money(line_price)}"
+                        )
+
+                else:
+
+                    st.info(
+                        f"Older order: {details}"
+                    )
+
+                st.divider()
+
+                # ---------------------------------------------
+                # PRICE / PAYMENT
+                # ---------------------------------------------
+
+                d1, d2 = st.columns(2)
+
+                with d1:
+
+                    st.metric(
+                        "Actual / normal price",
+                        money(normal_total)
+                    )
+
+                with d2:
+
+                    st.metric(
+                        "Amount paid",
+                        money(paid)
+                    )
+
+                d3, d4 = st.columns(2)
+
+                with d3:
+
+                    st.metric(
+                        "Discount given",
+                        money(
+                            max(
+                                discount,
+                                0
+                            )
+                        )
+                    )
+
+                with d4:
+
+                    st.metric(
+                        "Making cost",
+                        money(making_cost)
+                    )
+
+                st.metric(
+                    "Profit",
+                    money(profit)
+                )
+
+                if discount < 0:
+
+                    st.info(
+                        f"Customer paid "
+                        f"{money(abs(discount))} "
+                        "above the normal price."
+                    )
+
+                # ---------------------------------------------
+                # ACTIONS
+                # ---------------------------------------------
+
+                e1, e2 = st.columns(2)
+
+                with e1:
+
+                    if st.button(
+                        "✏️ Edit Order",
+                        key=f"dashboard_edit_{r['id']}",
+                        use_container_width=True
+                    ):
+
+                        start_edit(r)
+
+                        st.rerun()
+
+                with e2:
+
+                    if st.button(
+                        "📊 Open Reports",
+                        key=f"dashboard_reports_{r['id']}",
+                        use_container_width=True
+                    ):
+
+                        go("Reports")
 
 # =========================================================
 # ADD SALE
