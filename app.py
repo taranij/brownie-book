@@ -1,11 +1,17 @@
 import streamlit as st
 from datetime import date
+from html import escape
 from supabase import create_client
+
+# =========================================================
+# CONFIG
+# =========================================================
 
 st.set_page_config(
     page_title="Brownie Book",
     page_icon="🍫",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 sb = create_client(
@@ -13,11 +19,9 @@ sb = create_client(
     st.secrets["SUPABASE_KEY"]
 )
 
-# --------------------------------------------------
-# PRODUCTS
-# price = normal selling price
-# profit = profit at normal selling price
-# --------------------------------------------------
+# =========================================================
+# DATA
+# =========================================================
 
 PRODUCTS = {
     "250g Classic": (170, 91),
@@ -41,82 +45,13 @@ PRODUCTS = {
     "Brownie Bites": (169, 86),
 }
 
-# --------------------------------------------------
-# SPECIAL / TEMPORARY COMBOS
-# price = actual customer price
-# cost = making cost
-# --------------------------------------------------
-
 COMBOS = {
     "299 Combo": (259, 100)
 }
 
-# --------------------------------------------------
-# UI
-# --------------------------------------------------
-
-st.markdown("""
-<style>
-#MainMenu,footer,header{visibility:hidden}
-
-.block-container{
-    padding:1rem 1rem 4rem;
-    max-width:1100px
-}
-
-.hero{
-    padding:1.4rem 1.5rem;
-    border-radius:24px;
-    background:linear-gradient(135deg,#24130d,#5a2c1c);
-    color:white;
-    margin-bottom:1rem
-}
-
-.hero h1{
-    margin:0
-}
-
-.hero p{
-    margin:.2rem 0 0;
-    opacity:.8
-}
-
-.card{
-    padding:1rem;
-    border:1px solid #eadfd9;
-    border-radius:18px;
-    background:white;
-    min-height:100px
-}
-
-.label{
-    font-size:.82rem;
-    color:#766b65
-}
-
-.value{
-    font-size:1.5rem;
-    font-weight:700;
-    margin-top:.3rem
-}
-
-.section{
-    font-size:1.2rem;
-    font-weight:700;
-    margin:1.1rem 0 .6rem
-}
-
-div.stButton>button{
-    border-radius:14px;
-    min-height:44px;
-    font-weight:600
-}
-</style>
-""", unsafe_allow_html=True)
-
-# --------------------------------------------------
-# NAVIGATION
-# --------------------------------------------------
+# =========================================================
+# SESSION STATE
+# =========================================================
 
 if "page" not in st.session_state:
     st.session_state.page = "Dashboard"
@@ -127,48 +62,17 @@ if "order_items" not in st.session_state:
 if "order_customer" not in st.session_state:
     st.session_state.order_customer = ""
 
+# =========================================================
+# HELPERS
+# =========================================================
 
-def go(p):
-    st.session_state.page = p
+def go(page):
+    st.session_state.page = page
     st.rerun()
 
 
-nav = st.columns(4)
-
-for c, label, p in zip(
-    nav,
-    ["🏠 Dashboard", "➕ Add Sale", "🛒 Purchase", "📊 Reports"],
-    ["Dashboard", "Add Sale", "Purchase", "Reports"]
-):
-    with c:
-        if st.button(label, use_container_width=True):
-            go(p)
-
-
-st.markdown(
-    '<div class="hero"><h1>🍫 Brownie Book</h1>'
-    '<p>Your brownie-business money tracker — synced online</p></div>',
-    unsafe_allow_html=True
-)
-
-today = date.today().isoformat()
-month = date.today().replace(day=1).isoformat()
-
-sales = (
-    sb.table("sales")
-    .select("*")
-    .order("id", desc=True)
-    .execute()
-    .data
-)
-
-purchases = (
-    sb.table("purchases")
-    .select("*")
-    .order("id", desc=True)
-    .execute()
-    .data
-)
+def money(value):
+    return f"₹{float(value):,.0f}"
 
 
 def filt(rows, start=None, end=None):
@@ -179,155 +83,631 @@ def filt(rows, start=None, end=None):
     ]
 
 
+def load_data():
+    sales = (
+        sb.table("sales")
+        .select("*")
+        .order("id", desc=True)
+        .execute()
+        .data
+    )
+
+    purchases = (
+        sb.table("purchases")
+        .select("*")
+        .order("id", desc=True)
+        .execute()
+        .data
+    )
+
+    return sales, purchases
+
+
+def add_order_item(name, price, cost, qty):
+    st.session_state.order_items.append({
+        "product": name,
+        "quantity": int(qty),
+        "price": float(price),
+        "cost": float(cost),
+        "normal_profit": float(price - cost)
+    })
+
+
+# =========================================================
+# PREMIUM UI
+# =========================================================
+
+st.markdown("""
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'DM Sans', sans-serif;
+}
+
+#MainMenu,
+footer,
+header {
+    visibility: hidden;
+}
+
+.block-container {
+    max-width: 1180px;
+    padding: 1.2rem 1.3rem 4rem;
+}
+
+/* ---------- Background ---------- */
+
+.stApp {
+    background:
+        radial-gradient(circle at 5% 0%, rgba(121, 74, 48, .08), transparent 28%),
+        radial-gradient(circle at 95% 10%, rgba(202, 155, 115, .10), transparent 25%),
+        #fbf8f5;
+}
+
+/* ---------- Header ---------- */
+
+.brand {
+    background: linear-gradient(135deg, #24130d 0%, #4a2417 55%, #6d3824 100%);
+    padding: 1.7rem 1.8rem;
+    border-radius: 28px;
+    color: white;
+    margin-bottom: 1rem;
+    box-shadow: 0 12px 35px rgba(54, 29, 19, .15);
+    position: relative;
+    overflow: hidden;
+}
+
+.brand:after {
+    content: "🍫";
+    position: absolute;
+    right: 28px;
+    top: 18px;
+    font-size: 4rem;
+    opacity: .13;
+    transform: rotate(12deg);
+}
+
+.brand-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -.5px;
+}
+
+.brand-sub {
+    margin-top: 4px;
+    opacity: .76;
+    font-size: .92rem;
+}
+
+/* ---------- Navigation ---------- */
+
+.nav-wrap {
+    margin-bottom: 1.1rem;
+}
+
+div.stButton > button {
+    border-radius: 14px;
+    min-height: 44px;
+    font-weight: 600;
+    border: 1px solid #e7ddd7;
+    background: rgba(255,255,255,.9);
+    transition: all .15s ease;
+}
+
+div.stButton > button:hover {
+    border-color: #8b5b43;
+    transform: translateY(-1px);
+}
+
+/* ---------- Section headings ---------- */
+
+.section-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #2d1b14;
+    margin: 1.2rem 0 .7rem;
+}
+
+.section-sub {
+    color: #806f66;
+    font-size: .9rem;
+    margin-top: -.35rem;
+    margin-bottom: .8rem;
+}
+
+/* ---------- Metric cards ---------- */
+
+.metric-card {
+    background: rgba(255,255,255,.94);
+    border: 1px solid #eadfd8;
+    border-radius: 21px;
+    padding: 1.1rem 1.15rem;
+    min-height: 118px;
+    box-shadow: 0 7px 24px rgba(64, 37, 25, .055);
+}
+
+.metric-icon {
+    font-size: 1.25rem;
+}
+
+.metric-label {
+    color: #806f66;
+    font-size: .78rem;
+    font-weight: 600;
+    margin-top: .45rem;
+}
+
+.metric-value {
+    color: #2c1a13;
+    font-size: 1.65rem;
+    font-weight: 700;
+    margin-top: .12rem;
+}
+
+.metric-note {
+    color: #a18e84;
+    font-size: .72rem;
+    margin-top: .15rem;
+}
+
+/* ---------- Action cards ---------- */
+
+.action-card {
+    background: white;
+    border: 1px solid #eadfd8;
+    border-radius: 20px;
+    padding: 1rem 1.1rem;
+    margin-bottom: .7rem;
+}
+
+.action-title {
+    font-weight: 700;
+    color: #352119;
+    font-size: 1rem;
+}
+
+.action-desc {
+    color: #8a7770;
+    font-size: .78rem;
+    margin-top: .2rem;
+}
+
+/* ---------- Order card ---------- */
+
+.order-card {
+    background: white;
+    border: 1px solid #eadfd8;
+    border-radius: 19px;
+    padding: 1rem 1.1rem;
+    margin-bottom: .7rem;
+    box-shadow: 0 5px 18px rgba(54, 29, 19, .04);
+}
+
+.order-name {
+    font-weight: 700;
+    color: #332017;
+}
+
+.order-details {
+    color: #76655d;
+    font-size: .82rem;
+    margin-top: .25rem;
+    line-height: 1.5;
+}
+
+.order-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #5b2c1c;
+}
+
+.order-profit {
+    font-size: .78rem;
+    color: #6b806d;
+    margin-top: .2rem;
+}
+
+/* ---------- Summary box ---------- */
+
+.summary-box {
+    background: linear-gradient(135deg, #fffaf6, #f8eee8);
+    border: 1px solid #ead9cf;
+    border-radius: 22px;
+    padding: 1.2rem;
+    margin-top: .8rem;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: .35rem 0;
+    color: #69564d;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: .75rem;
+    margin-top: .45rem;
+    border-top: 1px solid #e4d4ca;
+    font-weight: 700;
+    color: #2e1a12;
+    font-size: 1.05rem;
+}
+
+/* ---------- Profit highlight ---------- */
+
+.profit-box {
+    background: linear-gradient(135deg, #edf7ef, #f7fbf6);
+    border: 1px solid #d6e8d8;
+    border-radius: 20px;
+    padding: 1rem 1.1rem;
+    margin-top: .7rem;
+}
+
+.profit-label {
+    color: #6c806f;
+    font-size: .78rem;
+}
+
+.profit-value {
+    color: #345b3b;
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin-top: .15rem;
+}
+
+/* ---------- Empty state ---------- */
+
+.empty {
+    text-align: center;
+    padding: 2.2rem 1rem;
+    background: white;
+    border: 1px dashed #decfc7;
+    border-radius: 22px;
+    color: #89766e;
+}
+
+.empty-icon {
+    font-size: 2.4rem;
+    margin-bottom: .4rem;
+}
+
+/* ---------- Pills ---------- */
+
+.pill {
+    display: inline-block;
+    padding: .3rem .65rem;
+    border-radius: 999px;
+    background: #f2e7df;
+    color: #6c3926;
+    font-size: .72rem;
+    font-weight: 600;
+}
+
+/* ---------- Inputs ---------- */
+
+div[data-baseweb="input"] > div,
+div[data-baseweb="select"] > div,
+textarea {
+    border-radius: 13px !important;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 700px) {
+
+    .block-container {
+        padding: .7rem .65rem 3rem;
+    }
+
+    .brand {
+        padding: 1.25rem 1.15rem;
+        border-radius: 22px;
+    }
+
+    .brand-title {
+        font-size: 1.65rem;
+    }
+
+    .brand-sub {
+        font-size: .78rem;
+        max-width: 75%;
+    }
+
+    .metric-card {
+        min-height: 100px;
+        padding: .85rem;
+    }
+
+    .metric-value {
+        font-size: 1.35rem;
+    }
+
+    .section-title {
+        font-size: 1.15rem;
+    }
+
+    div.stButton > button {
+        min-height: 48px;
+    }
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# HEADER
+# =========================================================
+
+st.markdown("""
+<div class="brand">
+    <div class="brand-title">Brownie Book 🍫</div>
+    <div class="brand-sub">
+        Your little business, beautifully organised.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# =========================================================
+# NAVIGATION
+# =========================================================
+
+nav = st.columns(4)
+
+nav_items = [
+    ("🏠", "Dashboard"),
+    ("➕", "Add Sale"),
+    ("🛒", "Purchase"),
+    ("📊", "Reports")
+]
+
+for col, (icon, page_name) in zip(nav, nav_items):
+    with col:
+        if st.button(
+            f"{icon} {page_name}",
+            use_container_width=True
+        ):
+            go(page_name)
+
+# =========================================================
+# DATA
+# =========================================================
+
+today = date.today().isoformat()
+month = date.today().replace(day=1).isoformat()
+
+sales, purchases = load_data()
+
 page = st.session_state.page
 
-# ==================================================
+# =========================================================
 # DASHBOARD
-# ==================================================
+# =========================================================
 
 if page == "Dashboard":
 
-    s = filt(sales, month, today)
-    p = filt(purchases, month, today)
+    month_sales = filt(sales, month, today)
+    month_purchases = filt(purchases, month, today)
 
-    vals = [
-        sum(float(x["sales"]) for x in s),
-        sum(float(x["profit"]) for x in s),
-        sum(float(x["amount"]) for x in p),
-        sum(int(x["quantity"]) for x in s)
-    ]
+    total_sales = sum(
+        float(x["sales"]) for x in month_sales
+    )
+
+    total_profit = sum(
+        float(x["profit"]) for x in month_sales
+    )
+
+    ingredient_spend = sum(
+        float(x["amount"]) for x in month_purchases
+    )
+
+    total_items = sum(
+        int(x["quantity"]) for x in month_sales
+    )
 
     st.markdown(
-        '<div class="section">This month</div>',
+        '<div class="section-title">Good to see you 👋</div>',
         unsafe_allow_html=True
     )
 
-    cols = st.columns(4)
+    st.markdown(
+        '<div class="section-sub">'
+        'Here is how your brownie business is doing this month.'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
-    for c, l, v in zip(
-        cols,
-        ["💰 Sales", "📈 Profit", "🛒 Ingredients", "📦 Items sold"],
-        vals
+    # METRICS
+
+    metric_cols = st.columns(4)
+
+    metrics = [
+        ("💰", "Sales", total_sales, "Money received"),
+        ("📈", "Profit", total_profit, "Product profit"),
+        ("🛒", "Ingredients", ingredient_spend, "Money spent"),
+        ("📦", "Items sold", total_items, "Units sold"),
+    ]
+
+    for col, (icon, label, value, note) in zip(
+        metric_cols,
+        metrics
     ):
-        with c:
+        with col:
+            display = (
+                money(value)
+                if label != "Items sold"
+                else f"{int(value):,}"
+            )
+
             st.markdown(
-                f'<div class="card">'
-                f'<div class="label">{l}</div>'
-                f'<div class="value">'
-                f'{"₹" if l != "📦 Items sold" else ""}'
-                f'{v:,.0f}'
-                f'</div></div>',
+                f"""
+                <div class="metric-card">
+                    <div class="metric-icon">{icon}</div>
+                    <div class="metric-label">{label}</div>
+                    <div class="metric-value">{display}</div>
+                    <div class="metric-note">{note}</div>
+                </div>
+                """,
                 unsafe_allow_html=True
             )
+
+    # QUICK ACTIONS
+
+    st.markdown(
+        '<div class="section-title">Quick actions</div>',
+        unsafe_allow_html=True
+    )
 
     a, b = st.columns(2)
 
     with a:
-        if st.button("➕ Record a sale", use_container_width=True):
+        if st.button(
+            "➕  Create new order",
+            use_container_width=True
+        ):
             go("Add Sale")
 
     with b:
         if st.button(
-            "🛒 Record ingredient purchase",
+            "🛒  Record ingredient purchase",
             use_container_width=True
         ):
             go("Purchase")
 
+    # RECENT ORDERS
+
     st.markdown(
-        '<div class="section">Recent sales</div>',
+        '<div class="section-title">Recent orders</div>',
         unsafe_allow_html=True
     )
 
-    for r in sales[:8]:
+    if not sales:
 
-        customer = r.get("customer_name", "").strip()
-
-        if customer:
-            customer_text = f" • 👤 {customer}"
-        else:
-            customer_text = ""
-
-        st.write(
-            f"**{r['product']}** × {r['quantity']}"
-            f"{customer_text}"
-            f" • ₹{float(r['sales']):,.0f}"
-            f" • ₹{float(r['profit']):,.0f} profit"
-            f" • `{str(r['date'])[:10]}`"
-        )
-
-# ==================================================
-# ADD SALE
-# ==================================================
-
-elif page == "Add Sale":
-
-    st.markdown(
-        '<div class="section">Add a sale</div>',
-        unsafe_allow_html=True
-    )
-
-    # ----------------------------------------------
-    # CUSTOMER NAME
-    # ----------------------------------------------
-
-    customer_name = st.text_input(
-        "Customer name (optional)",
-        value=st.session_state.order_customer,
-        placeholder="For your reference"
-    )
-
-    st.session_state.order_customer = customer_name
-
-    st.markdown(
-        '<div class="section">Add items to this order</div>',
-        unsafe_allow_html=True
-    )
-
-    # ----------------------------------------------
-    # ADD ITEM
-    # ----------------------------------------------
-
-    item_type = st.radio(
-        "Type",
-        ["Product", "Combo"],
-        horizontal=True
-    )
-
-    if item_type == "Product":
-
-        selected_item = st.selectbox(
-            "Product",
-            list(PRODUCTS.keys())
-        )
-
-        item_price, item_profit = PRODUCTS[selected_item]
-
-        # Cost = selling price - normal profit
-        item_cost = item_price - item_profit
-
-        qty = st.number_input(
-            "Quantity",
-            min_value=1,
-            max_value=100,
-            value=1,
-            step=1
-        )
-
-        st.caption(
-            f"₹{item_price} each • "
-            f"₹{item_profit} profit each at normal price"
+        st.markdown(
+            """
+            <div class="empty">
+                <div class="empty-icon">🍫</div>
+                <strong>No orders yet</strong><br>
+                Your future brownie orders will appear here.
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
     else:
 
-        selected_item = st.selectbox(
-            "Combo",
-            list(COMBOS.keys())
+        for r in sales[:7]:
+
+            customer = (
+                r.get("customer_name", "")
+                or ""
+            ).strip()
+
+            details = (
+                r.get("order_details", "")
+                or ""
+            ).strip()
+
+            title = (
+                escape(customer)
+                if customer
+                else "Walk-in / No name"
+            )
+
+            detail_text = (
+                escape(details)
+                if details
+                else escape(str(r.get("product", "")))
+            )
+
+            st.markdown(
+                f"""
+                <div class="order-card">
+                    <div style="display:flex;
+                                justify-content:space-between;
+                                gap:10px;">
+                        <div>
+                            <div class="order-name">
+                                👤 {title}
+                            </div>
+                            <div class="order-details">
+                                {detail_text}
+                            </div>
+                            <div class="order-details">
+                                {escape(str(r["date"])[:10])}
+                            </div>
+                        </div>
+
+                        <div style="text-align:right;
+                                    min-width:80px;">
+                            <div class="order-price">
+                                {money(r["sales"])}
+                            </div>
+                            <div class="order-profit">
+                                +{money(r["profit"])} profit
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+# =========================================================
+# ADD SALE
+# =========================================================
+
+elif page == "Add Sale":
+
+    st.markdown(
+        '<div class="section-title">Create an order ✨</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="section-sub">'
+        'Add everything the customer ordered, then enter what they actually paid.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    # CUSTOMER
+
+    customer_name = st.text_input(
+        "Customer name",
+        value=st.session_state.order_customer,
+        placeholder="Optional — just for your reference"
+    )
+
+    st.session_state.order_customer = customer_name
+
+    # ADD ITEMS
+
+    st.markdown(
+        '<div class="section-title">Add items</div>',
+        unsafe_allow_html=True
+    )
+
+    item_type = st.radio(
+        "Choose what you are adding",
+        ["🍫 Product", "🎁 Combo"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+    if item_type == "🍫 Product":
+
+        selected = st.selectbox(
+            "Product",
+            list(PRODUCTS.keys())
         )
 
-        item_price, item_cost = COMBOS[selected_item]
-
-        item_profit = item_price - item_cost
+        price, normal_profit = PRODUCTS[selected]
+        cost = price - normal_profit
 
         qty = st.number_input(
             "Quantity",
@@ -337,35 +717,80 @@ elif page == "Add Sale":
             step=1
         )
 
-        st.caption(
-            f"Customer price ₹{item_price} each • "
-            f"Cost ₹{item_cost} each • "
-            f"Profit ₹{item_profit} each"
+        st.markdown(
+            f"""
+            <div class="action-card">
+                <div class="action-title">
+                    {escape(selected)}
+                </div>
+                <div class="action-desc">
+                    {money(price)} each
+                    &nbsp; • &nbsp;
+                    {money(normal_profit)} normal profit each
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    else:
+
+        selected = st.selectbox(
+            "Combo",
+            list(COMBOS.keys())
+        )
+
+        price, cost = COMBOS[selected]
+        normal_profit = price - cost
+
+        qty = st.number_input(
+            "Quantity",
+            min_value=1,
+            max_value=100,
+            value=1,
+            step=1
+        )
+
+        st.markdown(
+            f"""
+            <div class="action-card">
+                <div class="action-title">
+                    🎁 {escape(selected)}
+                </div>
+                <div class="action-desc">
+                    Customer price {money(price)}
+                    &nbsp; • &nbsp;
+                    Cost {money(cost)}
+                    &nbsp; • &nbsp;
+                    Profit {money(normal_profit)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
     if st.button(
-        "➕ Add to order",
+        "＋ Add to order",
         use_container_width=True
     ):
 
-        st.session_state.order_items.append({
-            "product": selected_item,
-            "quantity": int(qty),
-            "price": float(item_price),
-            "cost": float(item_cost),
-            "normal_profit": float(item_profit)
-        })
+        add_order_item(
+            selected,
+            price,
+            cost,
+            qty
+        )
 
-        st.success(f"{selected_item} added to order.")
+        st.success(
+            f"{selected} × {qty} added."
+        )
 
-    # ----------------------------------------------
     # CURRENT ORDER
-    # ----------------------------------------------
 
     if st.session_state.order_items:
 
         st.markdown(
-            '<div class="section">Current order</div>',
+            '<div class="section-title">Your order 🧾</div>',
             unsafe_allow_html=True
         )
 
@@ -377,92 +802,146 @@ elif page == "Add Sale":
             st.session_state.order_items
         ):
 
-            item_total = (
-                item["price"] * item["quantity"]
+            line_total = (
+                item["price"] *
+                item["quantity"]
             )
 
-            item_total_cost = (
-                item["cost"] * item["quantity"]
+            line_cost = (
+                item["cost"] *
+                item["quantity"]
             )
 
-            normal_total += item_total
-            total_cost += item_total_cost
+            normal_total += line_total
+            total_cost += line_cost
             total_quantity += item["quantity"]
 
-            c1, c2, c3, c4 = st.columns(
-                [3, 1, 1.5, 0.8]
+            c1, c2, c3 = st.columns(
+                [5, 2, 1]
             )
 
-            c1.write(
-                f"**{item['product']}**"
-            )
+            with c1:
+                st.markdown(
+                    f"""
+                    <div class="order-card">
+                        <div class="order-name">
+                            {escape(item["product"])}
+                        </div>
+                        <div class="order-details">
+                            Quantity: {item["quantity"]}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            c2.write(
-                f"× {item['quantity']}"
-            )
+            with c2:
+                st.markdown(
+                    f"""
+                    <div style="padding-top:15px;
+                                text-align:right;
+                                font-weight:700;">
+                        {money(line_total)}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            c3.write(
-                f"₹{item_total:,.0f}"
-            )
+            with c3:
+                if st.button(
+                    "✕",
+                    key=f"remove_{i}"
+                ):
+                    st.session_state.order_items.pop(i)
+                    st.rerun()
 
-            if c4.button(
-                "🗑️",
-                key=f"remove_item_{i}"
-            ):
-                st.session_state.order_items.pop(i)
-                st.rerun()
+        # SUMMARY
 
-        st.divider()
+        st.markdown(
+            f"""
+            <div class="summary-box">
 
-        st.write(
-            f"**Normal order total: ₹{normal_total:,.0f}**"
+                <div class="summary-row">
+                    <span>Normal total</span>
+                    <strong>{money(normal_total)}</strong>
+                </div>
+
+                <div class="summary-row">
+                    <span>Total making cost</span>
+                    <strong>{money(total_cost)}</strong>
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-        st.write(
-            f"**Total making cost: ₹{total_cost:,.0f}**"
-        )
+        # ACTUAL PAYMENT
 
-        # ------------------------------------------
-        # ACTUAL AMOUNT PAID
-        # ------------------------------------------
+        st.markdown(
+            '<div class="section-title">Payment</div>',
+            unsafe_allow_html=True
+        )
 
         amount_paid = st.number_input(
-            "Amount actually paid by customer (₹)",
+            "Amount actually paid by customer",
             min_value=0.0,
             value=float(normal_total),
             step=1.0
         )
 
         discount = normal_total - amount_paid
+        actual_profit = amount_paid - total_cost
 
         if discount > 0:
 
-            st.info(
-                f"Discount / reduction given: "
-                f"₹{discount:,.0f}"
+            st.markdown(
+                f"""
+                <div class="action-card">
+                    <div class="action-title">
+                        🏷️ Discount given
+                    </div>
+                    <div class="action-desc">
+                        You reduced the order by
+                        <strong>{money(discount)}</strong>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
-        elif discount < 0:
+        elif discount == 0:
 
-            st.info(
-                f"Customer paid ₹"
-                f"{abs(discount):,.0f} more than "
-                f"the normal total."
+            st.markdown(
+                '<span class="pill">No discount</span>',
+                unsafe_allow_html=True
             )
 
-        actual_profit = amount_paid - total_cost
+        else:
 
-        st.metric(
-            "Profit from this order",
-            f"₹{actual_profit:,.0f}"
+            st.info(
+                f"Customer paid {money(abs(discount))} "
+                "more than the normal total."
+            )
+
+        st.markdown(
+            f"""
+            <div class="profit-box">
+                <div class="profit-label">
+                    YOUR PROFIT FROM THIS ORDER
+                </div>
+                <div class="profit-value">
+                    {money(actual_profit)}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-        # ------------------------------------------
-        # SAVE ORDER
-        # ------------------------------------------
+        # SAVE
 
         if st.button(
-            "💾 Save entire order",
+            "💾  Save order",
             use_container_width=True
         ):
 
@@ -474,7 +953,6 @@ elif page == "Add Sale":
 
             else:
 
-                # Store all items in one text field
                 details = " | ".join(
                     [
                         f"{x['product']} × {x['quantity']}"
@@ -482,7 +960,6 @@ elif page == "Add Sale":
                     ]
                 )
 
-                # Store the order as ONE sales record
                 sb.table("sales").insert({
                     "date": today,
                     "product": "Order",
@@ -497,17 +974,13 @@ elif page == "Add Sale":
                 st.session_state.order_customer = ""
 
                 st.success(
-                    "Order saved successfully."
+                    "Order saved successfully 🎉"
                 )
 
                 st.rerun()
 
-        # ------------------------------------------
-        # CLEAR ORDER
-        # ------------------------------------------
-
         if st.button(
-            "Clear current order",
+            "Clear order",
             use_container_width=True
         ):
 
@@ -518,24 +991,33 @@ elif page == "Add Sale":
 
     else:
 
-        st.info(
-            "No items added yet. Choose a product or "
-            "combo and click Add to order."
+        st.markdown(
+            """
+            <div class="empty">
+                <div class="empty-icon">🧾</div>
+                <strong>Your order is empty</strong><br>
+                Add brownies or a combo above.
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-# ==================================================
+# =========================================================
 # PURCHASE
-# ==================================================
+# =========================================================
 
 elif page == "Purchase":
 
     st.markdown(
-        '<div class="section">Add ingredient purchase</div>',
+        '<div class="section-title">Ingredient spending 🛒</div>',
         unsafe_allow_html=True
     )
 
-    st.caption(
-        "Enter only what you actually spent buying ingredients."
+    st.markdown(
+        '<div class="section-sub">'
+        'Record the money you actually spend buying ingredients.'
+        '</div>',
+        unsafe_allow_html=True
     )
 
     with st.form("purchase"):
@@ -546,20 +1028,22 @@ elif page == "Purchase":
         )
 
         amount = st.number_input(
-            "Amount spent (₹)",
+            "Amount spent",
             min_value=0.0,
             step=10.0
         )
 
-        if st.form_submit_button(
-            "Save purchase",
+        submitted = st.form_submit_button(
+            "💾 Save purchase",
             use_container_width=True
-        ):
+        )
+
+        if submitted:
 
             if not item.strip() or amount <= 0:
 
                 st.error(
-                    "Enter the item and amount."
+                    "Please enter the item and amount."
                 )
 
             else:
@@ -571,19 +1055,26 @@ elif page == "Purchase":
                 }).execute()
 
                 st.success(
-                    "Purchase saved to cloud."
+                    "Purchase saved 🛒"
                 )
 
                 st.rerun()
 
-# ==================================================
+# =========================================================
 # REPORTS
-# ==================================================
+# =========================================================
 
-else:
+elif page == "Reports":
 
     st.markdown(
-        '<div class="section">Reports</div>',
+        '<div class="section-title">Your reports 📊</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="section-sub">'
+        'See your sales, profits and ingredient spending.'
+        '</div>',
         unsafe_allow_html=True
     )
 
@@ -597,7 +1088,8 @@ else:
 
     if mode == "This month":
 
-        start, end = month, today
+        start = month
+        end = today
 
     elif mode == "Custom":
 
@@ -617,10 +1109,6 @@ else:
 
     sr = filt(sales, start, end)
     pr = filt(purchases, start, end)
-
-    # ----------------------------------------------
-    # SUMMARY
-    # ----------------------------------------------
 
     total_sales = sum(
         float(x["sales"])
@@ -642,45 +1130,59 @@ else:
         for x in sr
     )
 
+    # SUMMARY
+
     cols = st.columns(4)
 
-    for c, l, v in zip(
+    report_metrics = [
+        ("💰", "Sales", total_sales),
+        ("📈", "Profit", total_profit),
+        ("🛒", "Ingredients", total_ingredients),
+        ("📦", "Items", total_items),
+    ]
+
+    for col, (icon, label, value) in zip(
         cols,
-        [
-            "Sales",
-            "Profit",
-            "Ingredients",
-            "Items sold"
-        ],
-        [
-            total_sales,
-            total_profit,
-            total_ingredients,
-            total_items
-        ]
+        report_metrics
     ):
 
-        with c:
+        with col:
 
-            st.metric(
-                l,
-                f"₹{v:,.0f}"
-                if l != "Items sold"
-                else f"{v:,.0f}"
+            display = (
+                money(value)
+                if label != "Items"
+                else f"{int(value):,}"
             )
 
-    # ----------------------------------------------
+            st.markdown(
+                f"""
+                <div class="metric-card">
+                    <div class="metric-icon">{icon}</div>
+                    <div class="metric-label">{label}</div>
+                    <div class="metric-value">{display}</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
     # SALES
-    # ----------------------------------------------
 
     st.markdown(
-        '<div class="section">Sales</div>',
+        '<div class="section-title">Orders</div>',
         unsafe_allow_html=True
     )
 
     if not sr:
 
-        st.info("No sales for this period.")
+        st.markdown(
+            """
+            <div class="empty">
+                <div class="empty-icon">📭</div>
+                No orders found for this period.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     for r in sr:
 
@@ -694,113 +1196,187 @@ else:
             or ""
         ).strip()
 
-        c1, c2, c3, c4, c5, c6 = st.columns(
-            [1.2, 2.8, 1, 1, 1, .8]
+        customer_display = (
+            escape(customer)
+            if customer
+            else "No customer name"
         )
 
-        c1.write(
-            str(r["date"])[:10]
+        details_display = (
+            escape(details)
+            if details
+            else escape(str(r.get("product", "")))
         )
 
-        if customer:
+        c1, c2 = st.columns(
+            [7, 1]
+        )
 
-            c2.write(
-                f"👤 **{customer}**"
+        with c1:
+
+            st.markdown(
+                f"""
+                <div class="order-card">
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        gap:15px;
+                    ">
+
+                        <div>
+
+                            <div class="order-name">
+                                👤 {customer_display}
+                            </div>
+
+                            <div class="order-details">
+                                {details_display}
+                            </div>
+
+                            <div class="order-details">
+                                📅 {escape(str(r["date"])[:10])}
+                            </div>
+
+                        </div>
+
+                        <div style="
+                            text-align:right;
+                            min-width:80px;
+                        ">
+
+                            <div class="order-price">
+                                {money(r["sales"])}
+                            </div>
+
+                            <div class="order-profit">
+                                +{money(r["profit"])} profit
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
-            if details:
-                c2.caption(details)
+        with c2:
 
-        else:
+            if st.button(
+                "🗑️ Delete",
+                key=f"delete_{r['id']}",
+                use_container_width=True
+            ):
 
-            c2.write(
-                details if details else r["product"]
-            )
+                sb.table("sales") \
+                    .delete() \
+                    .eq("id", r["id"]) \
+                    .execute()
 
-        c3.write(
-            f"× {r['quantity']}"
-        )
+                st.rerun()
 
-        c4.write(
-            f"₹{float(r['sales']):,.0f}"
-        )
-
-        c5.write(
-            f"₹{float(r['profit']):,.0f}"
-        )
-
-        if c6.button(
-            "🗑️",
-            key=f"d{r['id']}"
-        ):
-
-            sb.table("sales") \
-                .delete() \
-                .eq("id", r["id"]) \
-                .execute()
-
-            st.rerun()
-
-    # ----------------------------------------------
     # PURCHASES
-    # ----------------------------------------------
 
     st.markdown(
-        '<div class="section">Ingredient purchases</div>',
+        '<div class="section-title">Ingredient purchases</div>',
         unsafe_allow_html=True
     )
 
-    st.dataframe(
-        [
-            {
-                "Date": str(r["date"])[:10],
-                "Item": r["item"],
-                "Amount (₹)": r["amount"]
-            }
-            for r in pr
-        ],
-        use_container_width=True
-    )
+    if pr:
 
-    # ----------------------------------------------
+        for r in pr:
+
+            c1, c2, c3 = st.columns(
+                [2, 5, 2]
+            )
+
+            with c1:
+                st.caption(
+                    str(r["date"])[:10]
+                )
+
+            with c2:
+                st.write(
+                    f"🛒 {r['item']}"
+                )
+
+            with c3:
+                st.write(
+                    f"**{money(r['amount'])}**"
+                )
+
+    else:
+
+        st.info(
+            "No ingredient purchases recorded."
+        )
+
     # PRODUCTS
-    # ----------------------------------------------
 
     st.markdown(
-        '<div class="section">Products</div>',
+        '<div class="section-title">Product reference</div>',
         unsafe_allow_html=True
     )
 
+    product_rows = []
+
+    for name, (price, profit) in PRODUCTS.items():
+
+        cost = price - profit
+
+        product_rows.append({
+            "Product": name,
+            "Selling price": money(price),
+            "Profit": money(profit),
+            "Cost": money(cost)
+        })
+
     st.dataframe(
-        [
-            {
-                "Product": p,
-                "Selling Price (₹)": v[0],
-                "Profit (₹)": v[1]
-            }
-            for p, v in PRODUCTS.items()
-        ],
-        use_container_width=True
+        product_rows,
+        use_container_width=True,
+        hide_index=True
     )
 
-    # ----------------------------------------------
     # COMBOS
-    # ----------------------------------------------
 
     st.markdown(
-        '<div class="section">Temporary combos</div>',
+        '<div class="section-title">Temporary combos</div>',
         unsafe_allow_html=True
     )
 
+    combo_rows = []
+
+    for name, (price, cost) in COMBOS.items():
+
+        combo_rows.append({
+            "Combo": name,
+            "Customer price": money(price),
+            "Making cost": money(cost),
+            "Profit": money(price - cost)
+        })
+
     st.dataframe(
-        [
-            {
-                "Combo": name,
-                "Customer Price (₹)": values[0],
-                "Making Cost (₹)": values[1],
-                "Profit (₹)": values[0] - values[1]
-            }
-            for name, values in COMBOS.items()
-        ],
-        use_container_width=True
+        combo_rows,
+        use_container_width=True,
+        hide_index=True
     )
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+st.markdown(
+    """
+    <div style="
+        text-align:center;
+        color:#aa9990;
+        font-size:.72rem;
+        padding-top:2rem;
+    ">
+        🍫 Brownie Book &nbsp;•&nbsp; Your business, your numbers.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
